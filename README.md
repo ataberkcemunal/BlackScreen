@@ -8,16 +8,10 @@
   Turn off your MacBook screen. Stay focused on your movie.
 </p>
 
-<br/>
-
 <p align="center">
   <a href="https://github.com/ataberkcemunal/BlackScreen/releases/latest">
     <img src="https://img.shields.io/badge/Download%20for%20macOS-BlackScreen-000000?style=for-the-badge&logo=apple&logoColor=white" />
   </a>
-</p>
-
-<p align="center">
-  <sub>Free • No setup • Works instantly</sub>
 </p>
 
 ---

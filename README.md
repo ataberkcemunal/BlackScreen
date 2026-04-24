@@ -24,11 +24,9 @@
 
 ## 🎬 Why BlackScreen?
 
-When watching movies or TV shows at night on an external monitor,  
-your MacBook screen can create unwanted light and break immersion.
+When watching movies or TV shows at night on an external monitor, your MacBook screen can create unwanted light and break immersion.
 
-**BlackScreen fixes this instantly** by turning your built-in display completely black  
-while keeping your external monitor fully usable.
+**BlackScreen fixes this instantly** by turning your built-in display completely black while keeping your external monitor fully usable.
 
 ---
 

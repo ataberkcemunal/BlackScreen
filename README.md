@@ -12,9 +12,6 @@
   <a href="https://github.com/ataberkcemunal/BlackScreen/releases/latest">
     <img src="https://img.shields.io/badge/Download-BlackScreen-black?style=for-the-badge&logo=apple&logoColor=white" />
   </a>
-  <a href="LICENSE">
-    <img src="https://img.shields.io/badge/License-MIT-black?style=for-the-badge" />
-  </a>
 </p>
 
 ---
@@ -47,13 +44,6 @@
 - Your MacBook display turns black  
 - External monitor stays active  
 - Click anywhere to exit  
-
----
-
-## 🖼️ Preview
-
-<!-- Add a screenshot or GIF here -->
-<!-- ![Preview](assets/screenshot.png) -->
 
 ---
 

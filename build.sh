@@ -2,45 +2,54 @@
 
 set -e
 
-rm -rf BlackScreen.app BlackScreen icon.iconset icon.icns
+APP_NAME="BlackScreen"
+BUNDLE_ID="com.ataberk.blackscreen"
 
-swiftc blackscreen.swift -o BlackScreen
+rm -rf "$APP_NAME.app" "$APP_NAME" icon.iconset icon.icns
 
-mkdir -p BlackScreen.app/Contents/MacOS
-mkdir -p BlackScreen.app/Contents/Resources
+echo "🔨 Compiling Swift..."
+swiftc blackscreen.swift -o "$APP_NAME"
 
-mv BlackScreen BlackScreen.app/Contents/MacOS/
+echo "📦 Creating app bundle..."
+mkdir -p "$APP_NAME.app/Contents/MacOS"
+mkdir -p "$APP_NAME.app/Contents/Resources"
 
-if [ -f icon.png ]; then
+mv "$APP_NAME" "$APP_NAME.app/Contents/MacOS/"
+
+echo "🎨 Creating app icon..."
+if [ -f "assets/icon.png" ]; then
     mkdir icon.iconset
 
-    sips -z 16 16 icon.png --out icon.iconset/icon_16x16.png
-    sips -z 32 32 icon.png --out icon.iconset/icon_16x16@2x.png
-    sips -z 32 32 icon.png --out icon.iconset/icon_32x32.png
-    sips -z 64 64 icon.png --out icon.iconset/icon_32x32@2x.png
-    sips -z 128 128 icon.png --out icon.iconset/icon_128x128.png
-    sips -z 256 256 icon.png --out icon.iconset/icon_128x128@2x.png
-    sips -z 256 256 icon.png --out icon.iconset/icon_256x256.png
-    sips -z 512 512 icon.png --out icon.iconset/icon_256x256@2x.png
-    sips -z 512 512 icon.png --out icon.iconset/icon_512x512.png
-    cp icon.png icon.iconset/icon_512x512@2x.png
+    sips -z 16 16 assets/icon.png --out icon.iconset/icon_16x16.png
+    sips -z 32 32 assets/icon.png --out icon.iconset/icon_16x16@2x.png
+    sips -z 32 32 assets/icon.png --out icon.iconset/icon_32x32.png
+    sips -z 64 64 assets/icon.png --out icon.iconset/icon_32x32@2x.png
+    sips -z 128 128 assets/icon.png --out icon.iconset/icon_128x128.png
+    sips -z 256 256 assets/icon.png --out icon.iconset/icon_128x128@2x.png
+    sips -z 256 256 assets/icon.png --out icon.iconset/icon_256x256.png
+    sips -z 512 512 assets/icon.png --out icon.iconset/icon_256x256@2x.png
+    sips -z 512 512 assets/icon.png --out icon.iconset/icon_512x512.png
+    cp assets/icon.png icon.iconset/icon_512x512@2x.png
 
     iconutil -c icns icon.iconset
-    mv icon.icns BlackScreen.app/Contents/Resources/icon.icns
+    mv icon.icns "$APP_NAME.app/Contents/Resources/icon.icns"
+else
+    echo "⚠️ assets/icon.png not found. App will use default icon."
 fi
 
-cat > BlackScreen.app/Contents/Info.plist <<'PLIST'
+echo "🧠 Creating Info.plist..."
+cat > "$APP_NAME.app/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>BlackScreen</string>
+    <string>$APP_NAME</string>
     <key>CFBundleDisplayName</key>
-    <string>BlackScreen</string>
+    <string>$APP_NAME</string>
     <key>CFBundleExecutable</key>
-    <string>BlackScreen</string>
+    <string>$APP_NAME</string>
     <key>CFBundleIdentifier</key>
-    <string>com.ataberk.blackscreen</string>
+    <string>$BUNDLE_ID</string>
     <key>CFBundleVersion</key>
     <string>1.0</string>
     <key>CFBundleShortVersionString</key>
@@ -55,6 +64,9 @@ cat > BlackScreen.app/Contents/Info.plist <<'PLIST'
 </plist>
 PLIST
 
-chmod +x BlackScreen.app/Contents/MacOS/BlackScreen
+chmod +x "$APP_NAME.app/Contents/MacOS/$APP_NAME"
 
-echo "✅ Built BlackScreen.app"
+xattr -cr "$APP_NAME.app"
+touch "$APP_NAME.app"
+
+echo "✅ Built $APP_NAME.app"

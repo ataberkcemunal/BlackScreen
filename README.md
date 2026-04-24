@@ -1,5 +1,7 @@
 # BlackScreen
 
+[⬇️ Download for macOS](https://github.com/ataberkcemunal/BlackScreen/releases/latest)
+
 BlackScreen is a minimal native macOS utility for MacBook users with an external monitor.
 
 It is designed for night-time movie and TV watching. When your MacBook is connected to an external display, the built-in MacBook screen can create distracting light in a dark room. BlackScreen blacks out only the built-in MacBook display while keeping the external monitor usable.

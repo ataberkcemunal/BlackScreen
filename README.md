@@ -5,7 +5,7 @@
 <h1 align="center">BlackScreen</h1>
 
 <p align="center">
-  Minimal macOS utility for distraction-free viewing on external monitors
+  Minimal macOS utility for distraction-free movie & TV watching on external monitors
 </p>
 
 <p align="center">
@@ -16,11 +16,22 @@
 
 ---
 
+## 🎬 Why BlackScreen?
+
+When watching movies or TV shows at night on an external monitor,  
+your MacBook screen can create unwanted light and break immersion.
+
+**BlackScreen solves this** by turning your built-in display completely black  
+while keeping your external monitor fully usable.
+
+---
+
 ## ✨ Features
 
+- 🎬 Perfect for movies & TV shows at night  
 - 🖤 Blacks out the built-in MacBook display  
 - 🖥️ Keeps external monitors fully usable  
-- 🌙 Perfect for night-time viewing  
+- 🌙 Eliminates distracting screen glow  
 - ⚡ Lightweight native macOS app (Swift)  
 - 🎬 Smooth fade-in and fade-out  
 - 🧼 No Dock icon  
@@ -40,10 +51,10 @@
 
 ## ⚙️ Usage
 
-- Launch the app  
-- Your MacBook display turns black  
-- External monitor stays active  
-- Click anywhere to exit  
+- Open BlackScreen  
+- Your MacBook display goes completely black  
+- External monitor remains active  
+- Click anywhere on the black screen to exit  
 
 ---
 

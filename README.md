@@ -1,51 +1,69 @@
-# BlackScreen
+<p align="center">
+  <img src="assets/icon.png" width="120" />
+</p>
 
-[⬇️ Download for macOS](https://github.com/ataberkcemunal/BlackScreen/releases/latest)
+<h1 align="center">BlackScreen</h1>
 
-BlackScreen is a minimal native macOS utility for MacBook users with an external monitor.
+<p align="center">
+  Minimal macOS utility for distraction-free viewing on external monitors
+</p>
 
-It is designed for night-time movie and TV watching. When your MacBook is connected to an external display, the built-in MacBook screen can create distracting light in a dark room. BlackScreen blacks out only the built-in MacBook display while keeping the external monitor usable.
+<p align="center">
+  <a href="https://github.com/ataberkcemunal/BlackScreen/releases/latest">
+    <img src="https://img.shields.io/badge/Download-BlackScreen-black?style=for-the-badge&logo=apple&logoColor=white" />
+  </a>
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/License-MIT-black?style=for-the-badge" />
+  </a>
+</p>
 
-## Features
+---
 
-- Blacks out only the built-in MacBook display
-- Keeps external monitors usable
-- Attempts to set built-in display brightness to minimum on launch
-- Restores brightness when clicked
-- Smooth fade-in and fade-out
-- No Dock icon while running
-- No menu bar while running
-- Click anywhere on the black screen to quit
-- Lightweight native macOS app written in Swift
-- Buildable from Terminal without an Xcode project
+## ✨ Features
 
-## Build
+- 🖤 Blacks out the built-in MacBook display  
+- 🖥️ Keeps external monitors fully usable  
+- 🌙 Perfect for night-time viewing  
+- ⚡ Lightweight native macOS app (Swift)  
+- 🎬 Smooth fade-in and fade-out  
+- 🧼 No Dock icon  
+- 🚫 No menu bar  
+- 👆 Click anywhere to exit  
 
-```bash
-./build.sh
-```
+---
 
-## Run
+## 🚀 Installation
 
-```bash
+1. Download **BlackScreen.dmg**  
+2. Open the DMG file  
+3. Drag **BlackScreen.app** into **Applications**  
+4. Launch the app  
+
+---
+
+## ⚙️ Usage
+
+- Launch the app  
+- Your MacBook display turns black  
+- External monitor stays active  
+- Click anywhere to exit  
+
+---
+
+## 🖼️ Preview
+
+<!-- Add a screenshot or GIF here -->
+<!-- ![Preview](assets/screenshot.png) -->
+
+---
+
+## 🛠️ Build from source
+
+./build.sh  
 open BlackScreen.app
-```
 
-## Install
+---
 
-```bash
-mv BlackScreen.app /Applications/
-```
+## 📄 License
 
-## Requirements
-
-- macOS
-- Swift compiler
-
-## Notes
-
-Brightness control on macOS may behave differently depending on system version and hardware. BlackScreen still shows a fullscreen black overlay on the built-in display even if brightness control is unavailable.
-
-## License
-
-MIT
+This project is licensed under the [MIT License](LICENSE).

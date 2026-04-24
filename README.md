@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./assets/icon.png" width="120" alt="BlackScreen icon" />
+  <img src="./assets/icon.png" width="100" alt="BlackScreen icon" />
 </p>
 
 <br/>
@@ -16,6 +16,10 @@
   <a href="https://github.com/ataberkcemunal/BlackScreen/releases/latest">
     <img src="https://img.shields.io/badge/Download%20for%20macOS-BlackScreen-000000?style=for-the-badge&logo=apple&logoColor=white" />
   </a>
+</p>
+
+<p align="center">
+  <sub>Free • No setup • Works instantly</sub>
 </p>
 
 ---
@@ -64,7 +68,8 @@ while keeping your external monitor fully usable.
 
 ## 🛠️ Build from source
 
-./build.sh  
+```bash
+./build.sh
 open BlackScreen.app
 
 ---

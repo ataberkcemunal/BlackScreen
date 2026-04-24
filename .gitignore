@@ -1,6 +1,16 @@
+# macOS
+.DS_Store
+
+# Build outputs
 BlackScreen
 BlackScreen.app
 BlackScreen.zip
+temp.dmg
+
+# Icon build artifacts
 icon.iconset
 icon.icns
-.DS_Store
+
+# Misc
+*.log
+*.swp

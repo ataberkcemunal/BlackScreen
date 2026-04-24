@@ -2,8 +2,6 @@
   <img src="./assets/icon.png" width="100" alt="BlackScreen icon" />
 </p>
 
-<br/>
-
 <h1 align="center">BlackScreen</h1>
 
 <p align="center">

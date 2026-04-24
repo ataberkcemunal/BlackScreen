@@ -26,14 +26,12 @@ When watching movies or TV shows at night on an external monitor, your MacBook s
 
 ## ✨ Features
 
-- 🎬 Perfect for movies & TV shows at night  
-- 🖤 Blacks out the built-in MacBook display  
-- 🖥️ Keeps external monitors fully usable  
-- 🌙 Eliminates distracting screen glow  
-- ⚡ Lightweight native macOS app (Swift)  
-- 🎬 Smooth fade-in and fade-out  
-- 🧼 No Dock icon  
-- 🚫 No menu bar  
+- 🎬 Perfect for movies & TV shows at night
+- 🖤 Blacks out the built-in MacBook display
+- 🖥️ Keeps external monitors fully usable
+- 🌙 Eliminates distracting screen glow
+- ⚡ Lightweight native macOS app (Swift)
+- 🎬 Smooth fade-in and fade-out
 - 👆 Click anywhere to exit  
 
 ---
@@ -58,7 +56,6 @@ When watching movies or TV shows at night on an external monitor, your MacBook s
 
 ## 🛠️ Build from source
 
-```bash
 ./build.sh
 open BlackScreen.app
 

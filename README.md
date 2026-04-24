@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/icon.png" width="120" />
+  <img src="./assets/icon.png" width="120" alt="BlackScreen icon" />
 </p>
 
 <h1 align="center">BlackScreen</h1>

@@ -2,15 +2,19 @@
   <img src="./assets/icon.png" width="120" alt="BlackScreen icon" />
 </p>
 
+<br/>
+
 <h1 align="center">BlackScreen</h1>
 
 <p align="center">
-  Minimal macOS utility for distraction-free movie & TV watching on external monitors
+  Turn off your MacBook screen. Stay focused on your movie.
 </p>
+
+<br/>
 
 <p align="center">
   <a href="https://github.com/ataberkcemunal/BlackScreen/releases/latest">
-    <img src="https://img.shields.io/badge/Download-BlackScreen-black?style=for-the-badge&logo=apple&logoColor=white" />
+    <img src="https://img.shields.io/badge/Download%20for%20macOS-BlackScreen-000000?style=for-the-badge&logo=apple&logoColor=white" />
   </a>
 </p>
 
@@ -21,7 +25,7 @@
 When watching movies or TV shows at night on an external monitor,  
 your MacBook screen can create unwanted light and break immersion.
 
-**BlackScreen solves this** by turning your built-in display completely black  
+**BlackScreen fixes this instantly** by turning your built-in display completely black  
 while keeping your external monitor fully usable.
 
 ---

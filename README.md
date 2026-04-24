@@ -44,8 +44,13 @@ BlackScreen is currently **unsigned**, so macOS may show:
 
 This is normal. To fix it, run:
 
+```bash
+# Remove macOS quarantine
 xattr -cr /Applications/BlackScreen.app
+
+# Launch the app
 open /Applications/BlackScreen.app
+```
 
 ---
 
@@ -69,8 +74,10 @@ open /Applications/BlackScreen.app
 
 ## 🛠️ Build from source
 
+```bash
 ./build.sh  
 open BlackScreen.app
+```
 
 ---
 

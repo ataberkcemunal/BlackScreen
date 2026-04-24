@@ -36,6 +36,19 @@ When watching movies or TV shows at night on an external monitor, your MacBook s
 
 ---
 
+## ⚠️ First Launch (Important)
+
+BlackScreen is currently **unsigned**, so macOS may show:
+
+> “App is damaged and can’t be opened”
+
+This is normal. To fix it, run:
+
+xattr -cr /Applications/BlackScreen.app
+open /Applications/BlackScreen.app
+
+---
+
 ## 🚀 Installation
 
 1. Download **BlackScreen.dmg**  

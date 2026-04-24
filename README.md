@@ -56,7 +56,7 @@ When watching movies or TV shows at night on an external monitor, your MacBook s
 
 ## 🛠️ Build from source
 
-./build.sh
+./build.sh  
 open BlackScreen.app
 
 ---

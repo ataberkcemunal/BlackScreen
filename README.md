@@ -36,6 +36,24 @@ When watching movies or TV shows at night on an external monitor, your MacBook s
 
 ---
 
+## ⚙️ Usage
+
+- Open BlackScreen  
+- Your MacBook display goes completely black  
+- External monitor remains active  
+- Click anywhere on the black screen to exit  
+
+---
+
+## 🚀 Installation
+
+1. Download **BlackScreen.dmg**  
+2. Open the DMG file  
+3. Drag **BlackScreen.app** into **Applications**  
+4. Launch the app  
+
+---
+
 ## ⚠️ First Launch (Important)
 
 BlackScreen is currently **unsigned**, so macOS may show:
@@ -51,24 +69,6 @@ xattr -cr /Applications/BlackScreen.app
 # Launch the app
 open /Applications/BlackScreen.app
 ```
-
----
-
-## 🚀 Installation
-
-1. Download **BlackScreen.dmg**  
-2. Open the DMG file  
-3. Drag **BlackScreen.app** into **Applications**  
-4. Launch the app  
-
----
-
-## ⚙️ Usage
-
-- Open BlackScreen  
-- Your MacBook display goes completely black  
-- External monitor remains active  
-- Click anywhere on the black screen to exit  
 
 ---
 

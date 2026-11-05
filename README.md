@@ -30,33 +30,44 @@ When watching movies or TV shows at night on an external monitor, your MacBook s
 - 🖤 Blacks out the built-in MacBook display
 - 🖥️ Keeps external monitors fully usable
 - 🌙 Eliminates distracting screen glow
-- ⚡ Lightweight native macOS app (Swift)
+- 💡 Restores your original brightness on exit (even after a crash or Force Quit)
+- ⌨️ Exit with a click, <kbd>Esc</kbd> or <kbd>⌘Q</kbd>
+- ⚡ Lightweight native macOS app (Swift), Apple Silicon + Intel
 - 🎬 Smooth fade-in and fade-out
-- 👆 Click anywhere to exit  
+- 🧼 No Dock icon
+
+---
+
+## 📋 Requirements
+
+- macOS 13 Ventura or later
+- A Mac with a built-in display (MacBook)
 
 ---
 
 ## ⚙️ Usage
 
-- Open BlackScreen  
-- Your MacBook display goes completely black  
-- External monitor remains active  
-- Click anywhere on the black screen to exit  
+- Open BlackScreen
+- Your MacBook display goes completely black
+- External monitor remains active
+- To exit, click the black screen, or press <kbd>Esc</kbd> / <kbd>⌘Q</kbd> while the pointer is over it
+  (works even if another app is focused; the keys behave normally while the pointer is on the external monitor)
+- Closing the lid also exits the app
 
 ---
 
 ## 🚀 Installation
 
-1. Download **BlackScreen.dmg**  
-2. Open the DMG file  
-3. Drag **BlackScreen.app** into **Applications**  
-4. Launch the app  
+1. Download **BlackScreen.dmg**
+2. Open the DMG file
+3. Drag **BlackScreen.app** into **Applications**
+4. Launch the app
 
 ---
 
 ## ⚠️ First Launch (Important)
 
-BlackScreen is currently **unsigned**, so macOS may show:
+BlackScreen is not notarized by Apple, so macOS may show:
 
 > “App is damaged and can’t be opened”
 
@@ -74,8 +85,10 @@ open /Applications/BlackScreen.app
 
 ## 🛠️ Build from source
 
+Requires Xcode Command Line Tools (`xcode-select --install`).
+
 ```bash
-./build.sh  
+./build.sh
 open BlackScreen.app
 ```
 

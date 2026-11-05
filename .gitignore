@@ -7,7 +7,6 @@ BlackScreen.app
 build/
 BlackScreen.zip
 temp.dmg
-*.dmg
 dmg/
 
 # Icon build artifacts

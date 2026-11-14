@@ -7,7 +7,7 @@ cd "${0:A:h}"
 
 APP_NAME="BlackScreen"
 BUNDLE_ID="com.ataberk.blackscreen"
-VERSION="1.0"
+VERSION="1.1.0"
 DEPLOYMENT_TARGET="13.0"
 ARCHS=(arm64 x86_64)
 

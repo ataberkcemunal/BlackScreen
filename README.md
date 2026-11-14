@@ -92,6 +92,12 @@ Requires Xcode Command Line Tools (`xcode-select --install`).
 open BlackScreen.app
 ```
 
+To package a release DMG (`BlackScreen.dmg`):
+
+```bash
+./make_dmg.sh
+```
+
 ---
 
 ## 📄 License

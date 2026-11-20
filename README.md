@@ -31,9 +31,10 @@ When watching movies or TV shows at night on an external monitor, your MacBook s
 - 🖥️ Keeps external monitors fully usable
 - 🌙 Eliminates distracting screen glow
 - 🔔 Notifications still show up on top of the black screen
-- ⌨️ Exit with a click, <kbd>Esc</kbd> or <kbd>⌘Q</kbd>
+- 👆 Click the black screen to exit
 - ⚡ Lightweight native macOS app (Swift), Apple Silicon + Intel
 - 👆 Three-finger swipe to switch between the black screen and your desktop
+- 🖱️ The pointer hides when it rests on the black screen
 - 🧼 No settings, never touches your brightness
 
 ---
@@ -42,6 +43,7 @@ When watching movies or TV shows at night on an external monitor, your MacBook s
 
 - macOS 13 Ventura or later
 - A Mac with a built-in display (MacBook)
+- Displays not mirrored (BlackScreen won't start while mirroring is on, so it never blacks out your external monitor)
 - "Displays have separate Spaces" turned on (System Settings → Desktop & Dock; on by default).
   If it's off, BlackScreen covers the display with a plain black window instead of going full screen.
 
@@ -54,9 +56,9 @@ When watching movies or TV shows at night on an external monitor, your MacBook s
 - External monitor remains active
 - Notifications still appear on the black screen
 - Moving the pointer to the top of the black screen shows the menu bar, like in any full-screen app
-- To exit, click the black screen, or press <kbd>Esc</kbd> / <kbd>⌘Q</kbd> while the pointer is over it
-  (works even if another app is focused; the keys behave normally while the pointer is on the external monitor)
-- Closing the lid also exits the app
+- BlackScreen shows a Dock icon while it's open (macOS needs this for the three-finger swipe)
+- To exit, click the black screen
+  (<kbd>⌘Q</kbd> while BlackScreen is the active app, closing the lid, or right-clicking the Dock icon → Quit also work)
 
 ---
 

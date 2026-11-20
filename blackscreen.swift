@@ -1,53 +1,13 @@
-import Carbon
 import Cocoa
 import CoreGraphics
+import Darwin
 
 // BlackScreen puts a pure black window in macOS full screen on the MacBook's
 // built-in display. macOS hides the menu bar and Dock there by itself, and
-// notification banners still show on top. Click it or press Esc to quit.
+// notification banners still show on top. Click it to quit.
 // Brightness is never touched.
 
-// MARK: - Hot keys (work without keyboard focus, no Accessibility permission)
-
-/// Registers Esc and ⌘Q as system-wide hot keys. They are only registered
-/// while the pointer is over the black screen, so other apps keep their
-/// Esc / ⌘Q the rest of the time.
-final class HotKeys {
-    var onTrigger: (() -> Void)?
-    private var refs: [EventHotKeyRef] = []
-    private var handlerRef: EventHandlerRef?
-
-    init() {
-        var spec = EventTypeSpec(eventClass: OSType(kEventClassKeyboard),
-                                 eventKind: UInt32(kEventHotKeyPressed))
-        InstallEventHandler(GetApplicationEventTarget(), { _, _, userData in
-            guard let userData else { return noErr }
-            let hotKeys = Unmanaged<HotKeys>.fromOpaque(userData).takeUnretainedValue()
-            DispatchQueue.main.async { hotKeys.onTrigger?() }
-            return noErr
-        }, 1, &spec, Unmanaged.passUnretained(self).toOpaque(), &handlerRef)
-    }
-
-    func register() {
-        guard refs.isEmpty else { return }
-        let keys: [(code: Int, modifiers: Int)] = [(kVK_Escape, 0), (kVK_ANSI_Q, cmdKey)]
-        for (index, key) in keys.enumerated() {
-            var ref: EventHotKeyRef?
-            let id = EventHotKeyID(signature: OSType(0x424C_4B53), id: UInt32(index + 1)) // 'BLKS'
-            if RegisterEventHotKey(UInt32(key.code), UInt32(key.modifiers), id,
-                                   GetApplicationEventTarget(), 0, &ref) == noErr, let ref {
-                refs.append(ref)
-            }
-        }
-    }
-
-    func unregister() {
-        refs.forEach { UnregisterEventHotKey($0) }
-        refs.removeAll()
-    }
-}
-
-// MARK: - Helpers
+// MARK: - Display helpers
 
 /// Returns the built-in (laptop) screen, or nil if there is none
 /// (desktop Mac, or MacBook in clamshell mode).
@@ -57,6 +17,17 @@ func builtInScreen() -> NSScreen? {
             return false
         }
         return CGDisplayIsBuiltin(CGDirectDisplayID(number.uint32Value)) != 0
+    }
+}
+
+/// True when the built-in display mirrors (or is mirrored by) another display.
+/// Blacking it out would then black out the mirrored external monitor too.
+func builtInDisplayIsMirrored() -> Bool {
+    var ids = [CGDirectDisplayID](repeating: 0, count: 16)
+    var count: UInt32 = 0
+    guard CGGetOnlineDisplayList(UInt32(ids.count), &ids, &count) == .success else { return false }
+    return ids.prefix(Int(count)).contains {
+        CGDisplayIsBuiltin($0) != 0 && CGDisplayIsInMirrorSet($0) != 0
     }
 }
 
@@ -74,12 +45,63 @@ func activateApp() {
     }
 }
 
+// MARK: - Cursor
+
+/// Hides the pointer while it rests on the black screen, like a video player.
+///
+/// macOS only lets the frontmost app hide the cursor, but while watching
+/// something the frontmost app is the player on the external monitor. The
+/// private "SetsCursorInBackground" connection property (used by other cursor
+/// utilities) lifts that limit; if it's ever unavailable, the cursor simply
+/// isn't hidden.
+final class CursorHider {
+    private let idleDelay: TimeInterval = 1.5
+    private var isHidden = false
+    private var idleTimer: Timer?
+
+    init() {
+        Self.allowCursorChangesInBackground()
+    }
+
+    /// Call on every pointer movement / relevant state change.
+    /// `overBlackScreen`: the pointer is on the visible black screen.
+    func update(overBlackScreen: Bool) {
+        idleTimer?.invalidate()
+        idleTimer = nil
+        show()
+        guard overBlackScreen else { return }
+        idleTimer = Timer.scheduledTimer(withTimeInterval: idleDelay, repeats: false) { [weak self] _ in
+            self?.hide()
+        }
+    }
+
+    func show() {
+        guard isHidden else { return }
+        CGDisplayShowCursor(CGMainDisplayID())
+        isHidden = false
+    }
+
+    private func hide() {
+        guard !isHidden else { return }
+        CGDisplayHideCursor(CGMainDisplayID())
+        isHidden = true
+    }
+
+    private static func allowCursorChangesInBackground() {
+        typealias DefaultConnection = @convention(c) () -> Int32
+        typealias SetProperty = @convention(c) (Int32, Int32, CFString, CFTypeRef) -> Int32
+        guard let connSym = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "_CGSDefaultConnection"),
+              let setSym = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "CGSSetConnectionProperty")
+        else { return }
+        let connection = unsafeBitCast(connSym, to: DefaultConnection.self)()
+        let setProperty = unsafeBitCast(setSym, to: SetProperty.self)
+        _ = setProperty(connection, connection, "SetsCursorInBackground" as CFString, kCFBooleanTrue)
+    }
+}
+
 // MARK: - Window / view
 
 final class BlackWindow: NSWindow {
-    override var canBecomeKey: Bool { true }
-    override var canBecomeMain: Bool { true }
-
     /// `frame` is in global screen coordinates, so it also picks the screen.
     init(frame: NSRect) {
         super.init(contentRect: frame,
@@ -108,56 +130,61 @@ final class BlackWindow: NSWindow {
 }
 
 final class ClickView: NSView {
-    var onExit: (() -> Void)?
+    var onClick: (() -> Void)?
 
-    override var acceptsFirstResponder: Bool { true }
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
-    override func mouseDown(with event: NSEvent) { onExit?() }
+    override func mouseDown(with event: NSEvent) { onClick?() }
 }
 
 // MARK: - App delegate
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var window: BlackWindow?
-    private var isExiting = false
-    private let hotKeys = HotKeys()
+    private let cursor = CursorHider()
     private var mouseMonitors: [Any] = []
 
     // BlackScreen runs as a regular app (Dock icon while open): macOS's
     // three-finger swipe skips full-screen spaces of background-only apps.
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if builtInDisplayIsMirrored() {
+            showAlert("Your displays are mirrored",
+                      "BlackScreen would black out your external monitor too. "
+                      + "Turn off mirroring in System Settings → Displays, then open BlackScreen again.")
+            NSApp.terminate(nil)
+            return
+        }
         guard let screen = builtInScreen() else {
-            showNoBuiltInDisplayAlert()
+            showAlert("No built-in display found",
+                      "BlackScreen only blacks out a MacBook's built-in display. "
+                      + "Open the lid or use it on a Mac with a built-in screen.")
             NSApp.terminate(nil)
             return
         }
 
+        installStandardMenu()
+
         let window = BlackWindow(frame: screen.frame)
         let view = ClickView(frame: NSRect(origin: .zero, size: screen.frame.size))
         view.autoresizingMask = [.width, .height]
-        view.onExit = { [weak self] in self?.dismiss() }
+        view.onClick = { NSApp.terminate(nil) }
         window.contentView = view
         window.delegate = self
         self.window = window
 
-        if !displaysHaveSeparateSpaces() {
+        let useFullScreen = displaysHaveSeparateSpaces()
+        if !useFullScreen {
             window.coverWithoutFullScreen(screen.frame)
         }
 
         activateApp()
         window.makeKeyAndOrderFront(nil)
-        window.makeFirstResponder(view)
 
-        if displaysHaveSeparateSpaces() {
+        if useFullScreen {
             window.toggleFullScreen(nil)
         }
 
-        // Esc / ⌘Q
-        hotKeys.onTrigger = { [weak self] in self?.dismiss() }
         installMouseMonitors()
-        installMainMenu()
-        installKeyMonitor()
-        updateHotKeys()
+        updateCursor()
 
         NotificationCenter.default.addObserver(
             self,
@@ -167,70 +194,57 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         )
         NSWorkspace.shared.notificationCenter.addObserver(
             self,
-            selector: #selector(updateHotKeys),
+            selector: #selector(updateCursor),
             name: NSWorkspace.activeSpaceDidChangeNotification,
             object: nil
         )
     }
 
     func windowDidEnterFullScreen(_ notification: Notification) {
-        updateHotKeys()
+        updateCursor()
     }
 
-    // MARK: Hot keys
+    func applicationWillTerminate(_ notification: Notification) {
+        cursor.show()
+    }
 
-    /// Esc / ⌘Q are taken over only while the pointer is on the built-in
-    /// display *and* the black screen is visible there (not after swiping
-    /// away to the desktop). Everywhere else the keys go to other apps.
-    @objc private func updateHotKeys() {
-        guard !isExiting, let window, let screen = builtInScreen() else { return }
-        let active = window.isOnActiveSpace
-            && NSMouseInRect(NSEvent.mouseLocation, screen.frame, false)
-        if active { hotKeys.register() } else { hotKeys.unregister() }
+    // MARK: Cursor
+
+    /// The pointer is "over the black screen" when it's on the built-in
+    /// display and the black screen is the visible space there.
+    @objc private func updateCursor() {
+        guard let window, let screen = builtInScreen() else {
+            cursor.show()
+            return
+        }
+        let over = window.isOnActiveSpace && NSMouseInRect(NSEvent.mouseLocation, screen.frame, false)
+        cursor.update(overBlackScreen: over)
     }
 
     /// Mouse-move monitors need no permission (only key monitors do).
     private func installMouseMonitors() {
-        let events: NSEvent.EventTypeMask = [.mouseMoved, .leftMouseDragged, .rightMouseDragged]
+        let events: NSEvent.EventTypeMask = [.mouseMoved, .leftMouseDragged, .rightMouseDragged, .scrollWheel]
         if let global = NSEvent.addGlobalMonitorForEvents(matching: events, handler: { [weak self] _ in
-            self?.updateHotKeys()
+            self?.updateCursor()
         }) {
             mouseMonitors.append(global)
         }
         if let local = NSEvent.addLocalMonitorForEvents(matching: events, handler: { [weak self] event in
-            self?.updateHotKeys()
+            self?.updateCursor()
             return event
         }) {
             mouseMonitors.append(local)
         }
     }
 
-    // MARK: Exit
+    // MARK: Menu
 
-    func dismiss() {
-        guard !isExiting else { return }
-        isExiting = true
-        hotKeys.unregister()
-        NSApp.terminate(nil)
-    }
-
-    // MARK: Keyboard
-
-    /// Esc closes the app whenever BlackScreen is the active app.
-    private func installKeyMonitor() {
-        NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            guard event.keyCode == 53 else { return event } // Escape
-            self?.dismiss()
-            return nil
-        }
-    }
-
-    /// A minimal main menu so ⌘Q is handled like in any other app.
-    private func installMainMenu() {
+    /// The usual app menu with "Quit BlackScreen" (⌘Q), like in any Mac app.
+    private func installStandardMenu() {
         let appMenu = NSMenu()
         appMenu.addItem(withTitle: "Quit BlackScreen",
-                        action: #selector(quitFromMenu),
-                        keyEquivalent: "q").target = self
+                        action: #selector(NSApplication.terminate(_:)),
+                        keyEquivalent: "q")
         let appItem = NSMenuItem()
         appItem.submenu = appMenu
         let mainMenu = NSMenu()
@@ -238,30 +252,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         NSApp.mainMenu = mainMenu
     }
 
-    @objc private func quitFromMenu() {
-        dismiss()
-    }
-
     // MARK: Screen changes
 
+    /// Quit when the built-in display goes away (lid closed / clamshell) or
+    /// gets mirrored to another display.
     @objc private func screenParametersChanged() {
-        guard !isExiting else { return }
-        if builtInScreen() == nil {
-            // Built-in display disappeared (lid closed / clamshell).
-            dismiss()
+        if builtInScreen() == nil || builtInDisplayIsMirrored() {
+            NSApp.terminate(nil)
         } else {
-            updateHotKeys()
+            updateCursor()
         }
     }
 
-    // MARK: Alerts
-
-    private func showNoBuiltInDisplayAlert() {
+    private func showAlert(_ title: String, _ message: String) {
         activateApp()
         let alert = NSAlert()
-        alert.messageText = "No built-in display found"
-        alert.informativeText = "BlackScreen only blacks out a MacBook's built-in display. "
-            + "Open the lid or use it on a Mac with a built-in screen."
+        alert.messageText = title
+        alert.informativeText = message
         alert.alertStyle = .warning
         alert.runModal()
     }

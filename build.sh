@@ -75,8 +75,6 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <string>$DEPLOYMENT_TARGET</string>
     <key>LSApplicationCategoryType</key>
     <string>public.app-category.utilities</string>
-    <key>LSUIElement</key>
-    <true/>
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSPrincipalClass</key>

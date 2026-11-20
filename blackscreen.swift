@@ -1,7 +1,11 @@
 import Carbon
 import Cocoa
 import CoreGraphics
-import Darwin
+
+// BlackScreen puts a pure black window in macOS full screen on the MacBook's
+// built-in display. macOS hides the menu bar and Dock there by itself, and
+// notification banners still show on top. Click it or press Esc to quit.
+// Brightness is never touched.
 
 // MARK: - Hot keys (work without keyboard focus, no Accessibility permission)
 
@@ -43,98 +47,23 @@ final class HotKeys {
     }
 }
 
-// MARK: - Display helpers
-
-func displayID(of screen: NSScreen) -> CGDirectDisplayID? {
-    guard let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else {
-        return nil
-    }
-    return CGDirectDisplayID(number.uint32Value)
-}
+// MARK: - Helpers
 
 /// Returns the built-in (laptop) screen, or nil if there is none
 /// (desktop Mac, or MacBook in clamshell mode).
-func builtInScreen() -> (screen: NSScreen, id: CGDirectDisplayID)? {
-    for screen in NSScreen.screens {
-        if let id = displayID(of: screen), CGDisplayIsBuiltin(id) != 0 {
-            return (screen, id)
+func builtInScreen() -> NSScreen? {
+    NSScreen.screens.first { screen in
+        guard let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else {
+            return false
         }
-    }
-    return nil
-}
-
-// MARK: - Brightness (private DisplayServices framework)
-
-enum Brightness {
-    private typealias Getter = @convention(c) (CGDirectDisplayID, UnsafeMutablePointer<Float>) -> Int32
-    private typealias Setter = @convention(c) (CGDirectDisplayID, Float) -> Int32
-
-    private static let handle = dlopen(
-        "/System/Library/PrivateFrameworks/DisplayServices.framework/DisplayServices",
-        RTLD_LAZY
-    )
-
-    private static let getter: Getter? = handle
-        .flatMap { dlsym($0, "DisplayServicesGetBrightness") }
-        .map { unsafeBitCast($0, to: Getter.self) }
-
-    private static let setter: Setter? = handle
-        .flatMap { dlsym($0, "DisplayServicesSetBrightness") }
-        .map { unsafeBitCast($0, to: Setter.self) }
-
-    static func get(_ id: CGDirectDisplayID) -> Float? {
-        guard let getter else { return nil }
-        var value: Float = 0
-        return getter(id, &value) == 0 ? value : nil
-    }
-
-    static func set(_ id: CGDirectDisplayID, _ value: Float) {
-        _ = setter?(id, min(max(value, 0), 1))
+        return CGDisplayIsBuiltin(CGDirectDisplayID(number.uint32Value)) != 0
     }
 }
 
-// MARK: - Brightness session (survives crashes / force quits)
-
-/// Remembers the user's original brightness so it can be restored on exit.
-/// The value is also persisted while the screen is blacked out: if the app is
-/// killed with SIGKILL (Force Quit), the next launch restores the real value
-/// instead of treating 0 as the "original" brightness.
-final class BrightnessSession {
-    private static let defaultsKey = "savedBrightness"
-    private let displayID: CGDirectDisplayID
-    private let original: Float
-    private var restored = false
-
-    init(displayID: CGDirectDisplayID) {
-        self.displayID = displayID
-        let defaults = UserDefaults.standard
-        if defaults.object(forKey: Self.defaultsKey) != nil {
-            // Previous session did not exit cleanly.
-            original = defaults.float(forKey: Self.defaultsKey)
-        } else {
-            original = Brightness.get(displayID) ?? 1.0
-            defaults.set(original, forKey: Self.defaultsKey)
-        }
-    }
-
-    func dim() {
-        Brightness.set(displayID, 0.0)
-    }
-
-    func restore() {
-        guard !restored else { return }
-        restored = true
-        Brightness.set(displayID, original)
-        UserDefaults.standard.removeObject(forKey: Self.defaultsKey)
-        UserDefaults.standard.synchronize()
-    }
-}
-
-// MARK: - Window / view
-
-final class BlackWindow: NSWindow {
-    override var canBecomeKey: Bool { true }
-    override var canBecomeMain: Bool { true }
+/// Full screen only stays on one display when "Displays have separate Spaces"
+/// is on (the macOS default). Otherwise it would blank the external monitor.
+func displaysHaveSeparateSpaces() -> Bool {
+    !(UserDefaults(suiteName: "com.apple.spaces")?.bool(forKey: "spans-displays") ?? false)
 }
 
 func activateApp() {
@@ -145,103 +74,90 @@ func activateApp() {
     }
 }
 
+// MARK: - Window / view
+
+final class BlackWindow: NSWindow {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { true }
+
+    /// `frame` is in global screen coordinates, so it also picks the screen.
+    init(frame: NSRect) {
+        super.init(contentRect: frame,
+                   styleMask: [.titled, .resizable, .fullSizeContentView],
+                   backing: .buffered, defer: false)
+        backgroundColor = .black
+        isOpaque = true
+        hasShadow = false
+        isReleasedWhenClosed = false
+        titleVisibility = .hidden
+        titlebarAppearsTransparent = true
+        [.closeButton, .miniaturizeButton, .zoomButton].forEach {
+            standardWindowButton($0)?.isHidden = true
+        }
+        collectionBehavior = [.fullScreenPrimary]
+    }
+
+    /// Fallback when full screen can't be used: a plain borderless window
+    /// over the whole display, just below notification banners.
+    func coverWithoutFullScreen(_ frame: NSRect) {
+        styleMask = [.borderless]
+        collectionBehavior = [.canJoinAllSpaces, .stationary]
+        level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.mainMenuWindow)) - 2)
+        setFrame(frame, display: true)
+    }
+}
+
 final class ClickView: NSView {
     var onExit: (() -> Void)?
-    var onHoverChanged: ((Bool) -> Void)?
 
     override var acceptsFirstResponder: Bool { true }
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
-
-    override func updateTrackingAreas() {
-        super.updateTrackingAreas()
-        trackingAreas.forEach(removeTrackingArea)
-        addTrackingArea(NSTrackingArea(
-            rect: bounds,
-            options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
-            owner: self
-        ))
-    }
-
-    override func mouseEntered(with event: NSEvent) {
-        onHoverChanged?(true)
-    }
-
-    override func mouseExited(with event: NSEvent) {
-        onHoverChanged?(false)
-    }
-
-    override func mouseDown(with event: NSEvent) {
-        onExit?()
-    }
+    override func mouseDown(with event: NSEvent) { onExit?() }
 }
 
 // MARK: - App delegate
 
-final class AppDelegate: NSObject, NSApplicationDelegate {
-    private let fadeDuration: TimeInterval = 0.25
-    private var window: BlackWindow!
-    private var session: BrightnessSession?
+final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
+    private var window: BlackWindow?
     private var isExiting = false
-    private var signalSources: [DispatchSourceSignal] = []
-    private var keyMonitor: Any?
     private let hotKeys = HotKeys()
+    private var mouseMonitors: [Any] = []
 
+    // BlackScreen runs as a regular app (Dock icon while open): macOS's
+    // three-finger swipe skips full-screen spaces of background-only apps.
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSApp.setActivationPolicy(.accessory)
-
-        guard let builtIn = builtInScreen() else {
+        guard let screen = builtInScreen() else {
             showNoBuiltInDisplayAlert()
             NSApp.terminate(nil)
             return
         }
-        let screen = builtIn.screen
 
-        let session = BrightnessSession(displayID: builtIn.id)
-        self.session = session
-        installSignalHandlers()
-
-        window = BlackWindow(
-            contentRect: screen.frame,
-            styleMask: [.borderless],
-            backing: .buffered,
-            defer: false,
-            screen: screen
-        )
-        window.backgroundColor = .black
-        window.isOpaque = true
-        window.hasShadow = false
-        window.isReleasedWhenClosed = false
-        window.level = .screenSaver
-        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
-        window.alphaValue = 0.0
-
+        let window = BlackWindow(frame: screen.frame)
         let view = ClickView(frame: NSRect(origin: .zero, size: screen.frame.size))
-        view.wantsLayer = true
-        view.layer?.backgroundColor = NSColor.black.cgColor
+        view.autoresizingMask = [.width, .height]
         view.onExit = { [weak self] in self?.dismiss() }
         window.contentView = view
+        window.delegate = self
+        self.window = window
 
-        hotKeys.onTrigger = { [weak self] in self?.dismiss() }
-        view.onHoverChanged = { [weak self] inside in
-            if inside { self?.hotKeys.register() } else { self?.hotKeys.unregister() }
+        if !displaysHaveSeparateSpaces() {
+            window.coverWithoutFullScreen(screen.frame)
         }
-        if NSMouseInRect(NSEvent.mouseLocation, screen.frame, false) {
-            hotKeys.register()
-        }
-
-        installMainMenu()
-        installKeyMonitor()
 
         activateApp()
         window.makeKeyAndOrderFront(nil)
         window.makeFirstResponder(view)
 
-        session.dim()
-
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = fadeDuration
-            window.animator().alphaValue = 1.0
+        if displaysHaveSeparateSpaces() {
+            window.toggleFullScreen(nil)
         }
+
+        // Esc / ⌘Q
+        hotKeys.onTrigger = { [weak self] in self?.dismiss() }
+        installMouseMonitors()
+        installMainMenu()
+        installKeyMonitor()
+        updateHotKeys()
 
         NotificationCenter.default.addObserver(
             self,
@@ -249,17 +165,44 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             name: NSApplication.didChangeScreenParametersNotification,
             object: nil
         )
-
-        // macOS may reset brightness after sleep/wake; re-apply it.
-        let workspace = NSWorkspace.shared.notificationCenter
-        workspace.addObserver(self, selector: #selector(reapplyDim),
-                              name: NSWorkspace.didWakeNotification, object: nil)
-        workspace.addObserver(self, selector: #selector(reapplyDim),
-                              name: NSWorkspace.screensDidWakeNotification, object: nil)
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self,
+            selector: #selector(updateHotKeys),
+            name: NSWorkspace.activeSpaceDidChangeNotification,
+            object: nil
+        )
     }
 
-    func applicationWillTerminate(_ notification: Notification) {
-        session?.restore()
+    func windowDidEnterFullScreen(_ notification: Notification) {
+        updateHotKeys()
+    }
+
+    // MARK: Hot keys
+
+    /// Esc / ⌘Q are taken over only while the pointer is on the built-in
+    /// display *and* the black screen is visible there (not after swiping
+    /// away to the desktop). Everywhere else the keys go to other apps.
+    @objc private func updateHotKeys() {
+        guard !isExiting, let window, let screen = builtInScreen() else { return }
+        let active = window.isOnActiveSpace
+            && NSMouseInRect(NSEvent.mouseLocation, screen.frame, false)
+        if active { hotKeys.register() } else { hotKeys.unregister() }
+    }
+
+    /// Mouse-move monitors need no permission (only key monitors do).
+    private func installMouseMonitors() {
+        let events: NSEvent.EventTypeMask = [.mouseMoved, .leftMouseDragged, .rightMouseDragged]
+        if let global = NSEvent.addGlobalMonitorForEvents(matching: events, handler: { [weak self] _ in
+            self?.updateHotKeys()
+        }) {
+            mouseMonitors.append(global)
+        }
+        if let local = NSEvent.addLocalMonitorForEvents(matching: events, handler: { [weak self] event in
+            self?.updateHotKeys()
+            return event
+        }) {
+            mouseMonitors.append(local)
+        }
     }
 
     // MARK: Exit
@@ -267,34 +210,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func dismiss() {
         guard !isExiting else { return }
         isExiting = true
-
         hotKeys.unregister()
-        session?.restore()
-
-        guard let window else {
-            NSApp.terminate(nil)
-            return
-        }
-
-        NSAnimationContext.runAnimationGroup({ context in
-            context.duration = fadeDuration
-            window.animator().alphaValue = 0.0
-        }, completionHandler: {
-            NSApp.terminate(nil)
-        })
+        NSApp.terminate(nil)
     }
 
     // MARK: Keyboard
 
-    /// Esc closes the app whenever BlackScreen is the active app,
-    /// regardless of which view is first responder.
+    /// Esc closes the app whenever BlackScreen is the active app.
     private func installKeyMonitor() {
-        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            if event.keyCode == 53 { // Escape
-                self?.dismiss()
-                return nil
-            }
-            return event
+        NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard event.keyCode == 53 else { return event } // Escape
+            self?.dismiss()
+            return nil
         }
     }
 
@@ -315,36 +242,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         dismiss()
     }
 
-    /// Restore brightness when killed via SIGTERM / SIGINT / SIGHUP
-    /// (e.g. `kill`, Ctrl+C in Terminal, logout).
-    private func installSignalHandlers() {
-        for sig in [SIGTERM, SIGINT, SIGHUP] {
-            signal(sig, SIG_IGN)
-            let source = DispatchSource.makeSignalSource(signal: sig, queue: .main)
-            source.setEventHandler { [weak self] in
-                self?.session?.restore()
-                Darwin.exit(0)
-            }
-            source.resume()
-            signalSources.append(source)
-        }
-    }
-
     // MARK: Screen changes
 
     @objc private func screenParametersChanged() {
         guard !isExiting else { return }
-        guard let builtIn = builtInScreen() else {
+        if builtInScreen() == nil {
             // Built-in display disappeared (lid closed / clamshell).
             dismiss()
-            return
+        } else {
+            updateHotKeys()
         }
-        window.setFrame(builtIn.screen.frame, display: true)
-    }
-
-    @objc private func reapplyDim() {
-        guard !isExiting else { return }
-        session?.dim()
     }
 
     // MARK: Alerts
